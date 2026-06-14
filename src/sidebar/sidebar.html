@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spaces</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Spaces</h1>
+      <button id="add-space-btn" class="btn-icon" title="New Space">+</button>
+    </header>
+
+    <nav id="space-tabs" class="space-tabs"></nav>
+
+    <section class="pinned-section">
+      <div class="section-header">
+        <h2>Pinned Tabs</h2>
+        <button id="pin-current-btn" class="btn-icon" title="Pin current tab">📌</button>
+      </div>
+      <ul id="pinned-list" class="tab-list"></ul>
+    </section>
+
+    <section class="open-section">
+      <h2>Open Tabs</h2>
+      <ul id="open-list" class="tab-list"></ul>
+    </section>
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="modal-title">New Space</h3>
+      <input type="text" id="modal-input" placeholder="Space name" />
+      <div class="color-picker" id="color-picker"></div>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="modal-confirm" class="btn btn-primary">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="sidebar.js" type="module"></script>
+</body>
+</html>

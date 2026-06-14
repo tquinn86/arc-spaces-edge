@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arc Spaces</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      width: 280px;
+      padding: 16px;
+    }
+    h1 { font-size: 14px; margin-bottom: 12px; }
+    .space-list { list-style: none; }
+    .space-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-bottom: 4px;
+    }
+    .space-item:hover { background: #2a2a4a; }
+    .space-item.active { background: #2a2a4a; border: 1px solid #4A90D9; }
+    .space-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .space-name { font-size: 13px; flex: 1; }
+    .space-count {
+      font-size: 11px;
+      color: #888;
+      background: #333;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+    .footer {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #333;
+      font-size: 11px;
+      color: #666;
+      text-align: center;
+    }
+    .open-sidebar {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      margin-top: 8px;
+      background: #4A90D9;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .open-sidebar:hover { background: #357abd; }
+  </style>
+</head>
+<body>
+  <h1>🌐 Arc Spaces</h1>
+  <ul id="space-list" class="space-list"></ul>
+  <div class="footer">
+    <span>Ctrl+Shift+← → to switch spaces</span>
+    <button id="open-sidebar" class="open-sidebar">Open Sidebar Panel</button>
+  </div>
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

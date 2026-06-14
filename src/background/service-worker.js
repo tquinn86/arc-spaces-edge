@@ -1,0 +1,185 @@
+import {
+  getSpaces,
+  saveSpaces,
+  getActiveSpaceId,
+  setActiveSpaceId,
+  getActiveSpace,
+  pinTab,
+  revertTab
+} from '../utils/storage.js';
+
+// Initialize extension on install
+chrome.runtime.onInstalled.addListener(async () => {
+  // Ensure default space exists
+  await getSpaces();
+  await setActiveSpaceId('default');
+
+  // Set up side panel
+  chrome.sidePanel.setOptions({
+    enabled: true
+  });
+});
+
+// Handle keyboard shortcuts
+chrome.commands.onCommand.addListener(async (command) => {
+  const spaces = await getSpaces();
+  const activeId = await getActiveSpaceId();
+  const currentIndex = spaces.findIndex(s => s.id === activeId);
+
+  let nextIndex;
+  if (command === 'switch-space-next') {
+    nextIndex = (currentIndex + 1) % spaces.length;
+  } else if (command === 'switch-space-prev') {
+    nextIndex = (currentIndex - 1 + spaces.length) % spaces.length;
+  }
+
+  if (nextIndex !== undefined) {
+    await switchToSpace(spaces[nextIndex].id);
+  }
+});
+
+// Listen for messages from popup/sidebar
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  handleMessage(message).then(sendResponse).catch(err => {
+    sendResponse({ error: err.message });
+  });
+  return true; // keep channel open for async response
+});
+
+async function handleMessage(message) {
+  switch (message.type) {
+    case 'GET_SPACES':
+      return { spaces: await getSpaces(), activeSpaceId: await getActiveSpaceId() };
+
+    case 'SWITCH_SPACE':
+      await switchToSpace(message.spaceId);
+      return { success: true };
+
+    case 'CREATE_SPACE':
+      const { createSpace } = await import('../utils/storage.js');
+      const newSpace = await createSpace(message.name, message.color);
+      return { space: newSpace };
+
+    case 'DELETE_SPACE':
+      const { deleteSpace } = await import('../utils/storage.js');
+      await deleteSpace(message.spaceId);
+      return { success: true };
+
+    case 'PIN_TAB':
+      const pinnedTab = await pinTab(message.spaceId, message.url, message.title);
+      return { pinnedTab };
+
+    case 'UNPIN_TAB':
+      const { unpinTab } = await import('../utils/storage.js');
+      await unpinTab(message.spaceId, message.pinId);
+      return { success: true };
+
+    case 'REVERT_TAB':
+      const revertedTab = await revertTab(message.spaceId, message.pinId);
+      // Navigate the actual browser tab back to original URL
+      const tabs = await chrome.tabs.query({ url: message.currentUrl });
+      if (tabs.length > 0) {
+        await chrome.tabs.update(tabs[0].id, { url: revertedTab.originalUrl });
+      }
+      return { tab: revertedTab };
+
+    case 'UPDATE_PINNED_TAB_URL':
+      await updatePinnedTabCurrentUrl(message.spaceId, message.pinId, message.url);
+      return { success: true };
+
+    default:
+      throw new Error(`Unknown message type: ${message.type}`);
+  }
+}
+
+/**
+ * Switch to a different space:
+ * 1. Save current open tabs to current space
+ * 2. Close current non-pinned tabs
+ * 3. Restore target space's tabs
+ */
+async function switchToSpace(targetSpaceId) {
+  const spaces = await getSpaces();
+  const activeId = await getActiveSpaceId();
+
+  if (activeId === targetSpaceId) return;
+
+  const currentSpace = spaces.find(s => s.id === activeId);
+  const targetSpace = spaces.find(s => s.id === targetSpaceId);
+
+  if (!targetSpace) throw new Error(`Space ${targetSpaceId} not found`);
+
+  // Save current open tabs
+  const currentTabs = await chrome.tabs.query({ currentWindow: true });
+  if (currentSpace) {
+    currentSpace.openTabs = currentTabs
+      .filter(t => !t.pinned) // don't save browser-pinned tabs
+      .map(t => ({ url: t.url, title: t.title }));
+    await saveSpaces(spaces);
+  }
+
+  // Close all non-pinned tabs in current window
+  const tabsToClose = currentTabs.filter(t => !t.pinned).map(t => t.id);
+
+  // Open target space's pinned tabs
+  const pinnedUrls = targetSpace.pinnedTabs.map(t => t.url);
+  const openUrls = targetSpace.openTabs.map(t => t.url);
+  const allUrls = [...pinnedUrls, ...openUrls];
+
+  // Ensure at least one tab exists before closing others
+  if (allUrls.length > 0) {
+    // Create new tabs first
+    for (const url of allUrls) {
+      await chrome.tabs.create({ url, active: false });
+    }
+    // Then close old tabs
+    if (tabsToClose.length > 0) {
+      await chrome.tabs.remove(tabsToClose);
+    }
+  } else {
+    // Create a new tab if space is empty
+    await chrome.tabs.create({ url: 'chrome://newtab' });
+    if (tabsToClose.length > 0) {
+      await chrome.tabs.remove(tabsToClose);
+    }
+  }
+
+  // Activate first tab
+  const newTabs = await chrome.tabs.query({ currentWindow: true });
+  if (newTabs.length > 0) {
+    await chrome.tabs.update(newTabs[0].id, { active: true });
+  }
+
+  // Update active space
+  await setActiveSpaceId(targetSpaceId);
+
+  // Notify UI to refresh
+  chrome.runtime.sendMessage({ type: 'SPACE_SWITCHED', spaceId: targetSpaceId }).catch(() => {});
+}
+
+async function updatePinnedTabCurrentUrl(spaceId, pinId, url) {
+  const spaces = await getSpaces();
+  const space = spaces.find(s => s.id === spaceId);
+  if (!space) return;
+  const tab = space.pinnedTabs.find(t => t.id === pinId);
+  if (!tab) return;
+  tab.url = url;
+  await saveSpaces(spaces);
+}
+
+// Track tab URL changes for pinned tabs
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.url) {
+    const activeSpace = await getActiveSpace();
+    if (!activeSpace) return;
+
+    // Check if this tab matches any pinned tab
+    for (const pinnedTab of activeSpace.pinnedTabs) {
+      // Match by comparing with the known URL
+      if (tab.url && pinnedTab.url !== tab.url) {
+        // Tab navigated away - we could track this
+        // For now, we just let the user revert manually
+      }
+    }
+  }
+});

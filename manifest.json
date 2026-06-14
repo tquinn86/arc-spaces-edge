@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Arc Spaces for Edge",
+  "version": "1.0.0",
+  "description": "Arc browser-style Spaces with persistent, revertable tabs for Microsoft Edge",
+  "permissions": [
+    "tabs",
+    "tabGroups",
+    "storage",
+    "sidePanel"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "src/sidebar/sidebar.html"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "src/icons/icon16.png",
+      "48": "src/icons/icon48.png",
+      "128": "src/icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "src/icons/icon16.png",
+    "48": "src/icons/icon48.png",
+    "128": "src/icons/icon128.png"
+  },
+  "commands": {
+    "switch-space-next": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Right"
+      },
+      "description": "Switch to next space"
+    },
+    "switch-space-prev": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Left"
+      },
+      "description": "Switch to previous space"
+    }
+  }
+}

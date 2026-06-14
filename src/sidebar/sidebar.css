@@ -1,0 +1,299 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-size: 13px;
+  overflow-x: hidden;
+}
+
+.container {
+  padding: 12px;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.header h1 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.btn-icon {
+  background: none;
+  border: 1px solid #333;
+  color: #e0e0e0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background 0.15s;
+}
+
+.btn-icon:hover {
+  background: #2a2a4a;
+}
+
+/* Space tabs */
+.space-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.space-tab {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  opacity: 0.6;
+  transition: opacity 0.15s, transform 0.1s;
+  position: relative;
+}
+
+.space-tab:hover {
+  opacity: 0.85;
+}
+
+.space-tab.active {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.space-tab .delete-space {
+  display: none;
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e74c3c;
+  color: #fff;
+  font-size: 10px;
+  border: none;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.space-tab:hover .delete-space {
+  display: flex;
+}
+
+/* Sections */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.section-header h2 {
+  margin-bottom: 0;
+}
+
+.pinned-section {
+  margin-bottom: 20px;
+}
+
+/* Tab list */
+.tab-list {
+  list-style: none;
+}
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.tab-item:hover {
+  background: #2a2a4a;
+}
+
+.tab-item .favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.tab-item .tab-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.tab-item .tab-actions {
+  display: none;
+  gap: 4px;
+}
+
+.tab-item:hover .tab-actions {
+  display: flex;
+}
+
+.tab-action-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.tab-action-btn:hover {
+  color: #fff;
+  background: #333;
+}
+
+.tab-action-btn.revert {
+  color: #f39c12;
+}
+
+.tab-action-btn.revert:hover {
+  background: #f39c1233;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-overlay.hidden {
+  display: none;
+}
+
+.modal {
+  background: #2a2a4a;
+  border-radius: 12px;
+  padding: 20px;
+  width: 260px;
+}
+
+.modal h3 {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.modal input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.modal input:focus {
+  outline: none;
+  border-color: #4A90D9;
+}
+
+.color-picker {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.2);
+}
+
+.color-swatch.selected {
+  border-color: #fff;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background: #4A90D9;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #357abd;
+}
+
+.btn-secondary {
+  background: #444;
+  color: #e0e0e0;
+}
+
+.btn-secondary:hover {
+  background: #555;
+}
+
+/* Empty state */
+.empty-state {
+  color: #666;
+  font-style: italic;
+  padding: 8px 10px;
+  font-size: 12px;
+}
