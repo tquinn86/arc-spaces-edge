@@ -5,7 +5,13 @@ import {
   setActiveSpaceId,
   getActiveSpace,
   pinTab,
-  revertTab
+  revertTab,
+  getTabTimestamps,
+  saveTabTimestamps,
+  trackTab,
+  untrackTab,
+  getSettings,
+  saveSettings
 } from '../utils/storage.js';
 
 // Initialize extension on install
@@ -18,6 +24,76 @@ chrome.runtime.onInstalled.addListener(async () => {
   chrome.sidePanel.setOptions({
     enabled: true
   });
+
+  // Set up auto-close alarm (checks every 15 minutes)
+  chrome.alarms.create('auto-close-stale-tabs', { periodInMinutes: 15 });
+
+  // Track all currently open tabs
+  const tabs = await chrome.tabs.query({});
+  for (const tab of tabs) {
+    await trackTab(tab.id);
+  }
+});
+
+// Also set up alarm on startup (service worker can restart)
+chrome.runtime.onStartup.addListener(async () => {
+  chrome.alarms.create('auto-close-stale-tabs', { periodInMinutes: 15 });
+});
+
+// Auto-close stale tabs
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== 'auto-close-stale-tabs') return;
+
+  const settings = await getSettings();
+  if (!settings.autoCloseEnabled) return;
+
+  const maxAge = settings.autoCloseHours * 60 * 60 * 1000;
+  const now = Date.now();
+  const timestamps = await getTabTimestamps();
+  const activeSpace = await getActiveSpace();
+  const pinnedUrls = new Set((activeSpace?.pinnedTabs || []).map(t => t.url));
+
+  const tabs = await chrome.tabs.query({ currentWindow: true });
+  const tabsToClose = [];
+
+  for (const tab of tabs) {
+    // Skip browser-pinned tabs and extension pages
+    if (tab.pinned) continue;
+    if (tab.url?.startsWith('chrome://') || tab.url?.startsWith('edge://')) continue;
+
+    // Skip tabs that are pinned in the active space
+    if (pinnedUrls.has(tab.url)) continue;
+
+    const openedAt = timestamps[tab.id];
+    if (openedAt && (now - openedAt) >= maxAge) {
+      tabsToClose.push(tab.id);
+    }
+  }
+
+  if (tabsToClose.length > 0) {
+    // Ensure we don't close ALL tabs
+    const remainingCount = tabs.length - tabsToClose.length;
+    if (remainingCount < 1) {
+      await chrome.tabs.create({ url: 'chrome://newtab' });
+    }
+    await chrome.tabs.remove(tabsToClose);
+
+    // Clean up timestamps
+    for (const id of tabsToClose) {
+      delete timestamps[id];
+    }
+    await saveTabTimestamps(timestamps);
+  }
+});
+
+// Track new tabs
+chrome.tabs.onCreated.addListener(async (tab) => {
+  await trackTab(tab.id);
+});
+
+// Clean up closed tabs
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  await untrackTab(tabId);
 });
 
 // Handle keyboard shortcuts
@@ -85,6 +161,13 @@ async function handleMessage(message) {
 
     case 'UPDATE_PINNED_TAB_URL':
       await updatePinnedTabCurrentUrl(message.spaceId, message.pinId, message.url);
+      return { success: true };
+
+    case 'GET_SETTINGS':
+      return { settings: await getSettings() };
+
+    case 'SAVE_SETTINGS':
+      await saveSettings(message.settings);
       return { success: true };
 
     default:

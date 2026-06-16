@@ -297,3 +297,50 @@ h2 {
   padding: 8px 10px;
   font-size: 12px;
 }
+
+/* Settings */
+.settings-section {
+  margin-top: 20px;
+  border-top: 1px solid #333;
+  padding-top: 12px;
+}
+
+.settings-panel.hidden {
+  display: none;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.setting-row:hover {
+  background: #2a2a4a;
+}
+
+.setting-row input[type="checkbox"] {
+  accent-color: #4A90D9;
+  width: 16px;
+  height: 16px;
+}
+
+.setting-input {
+  width: 60px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-size: 13px;
+  text-align: center;
+}
+
+.setting-input:focus {
+  outline: none;
+  border-color: #4A90D9;
+}

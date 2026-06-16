@@ -122,6 +122,53 @@ export async function revertTab(spaceId, pinId) {
   return tab;
 }
 
+// --- Tab age tracking ---
+
+export async function getTabTimestamps() {
+  const data = await chrome.storage.local.get('tabTimestamps');
+  return data.tabTimestamps || {};
+}
+
+export async function saveTabTimestamps(timestamps) {
+  await chrome.storage.local.set({ tabTimestamps: timestamps });
+}
+
+export async function trackTab(tabId) {
+  const timestamps = await getTabTimestamps();
+  if (!timestamps[tabId]) {
+    timestamps[tabId] = Date.now();
+    await saveTabTimestamps(timestamps);
+  }
+}
+
+export async function untrackTab(tabId) {
+  const timestamps = await getTabTimestamps();
+  delete timestamps[tabId];
+  await saveTabTimestamps(timestamps);
+}
+
+export async function refreshTabTimestamp(tabId) {
+  const timestamps = await getTabTimestamps();
+  timestamps[tabId] = Date.now();
+  await saveTabTimestamps(timestamps);
+}
+
+// --- Settings ---
+
+const DEFAULT_SETTINGS = {
+  autoCloseEnabled: true,
+  autoCloseHours: 24
+};
+
+export async function getSettings() {
+  const data = await chrome.storage.local.get('settings');
+  return { ...DEFAULT_SETTINGS, ...data.settings };
+}
+
+export async function saveSettings(settings) {
+  await chrome.storage.local.set({ settings: { ...DEFAULT_SETTINGS, ...settings } });
+}
+
 const SPACE_COLORS = [
   '#4A90D9', '#E74C3C', '#2ECC71', '#F39C12',
   '#9B59B6', '#1ABC9C', '#E67E22', '#3498DB'

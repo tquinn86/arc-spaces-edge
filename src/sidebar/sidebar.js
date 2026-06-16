@@ -18,12 +18,19 @@ const modalInput = document.getElementById('modal-input');
 const modalCancel = document.getElementById('modal-cancel');
 const modalConfirm = document.getElementById('modal-confirm');
 const colorPicker = document.getElementById('color-picker');
+const toggleSettingsBtn = document.getElementById('toggle-settings-btn');
+const settingsPanel = document.getElementById('settings-panel');
+const autoCloseToggle = document.getElementById('auto-close-toggle');
+const autoCloseHours = document.getElementById('auto-close-hours');
 
 // Initialize
+const openSidebarBtn = document.getElementById('open-sidebar');
+
 document.addEventListener('DOMContentLoaded', async () => {
   await refreshUI();
   setupEventListeners();
   renderColorPicker();
+  await loadSettings();
 });
 
 // Listen for space switch notifications
@@ -160,6 +167,13 @@ function setupEventListeners() {
     if (e.key === 'Enter') confirmCreateSpace();
     if (e.key === 'Escape') hideModal();
   });
+
+  toggleSettingsBtn.addEventListener('click', () => {
+    settingsPanel.classList.toggle('hidden');
+  });
+
+  autoCloseToggle.addEventListener('change', saveCurrentSettings);
+  autoCloseHours.addEventListener('change', saveCurrentSettings);
 }
 
 function renderColorPicker() {
@@ -253,4 +267,21 @@ function getFaviconUrl(url) {
   } catch {
     return '';
   }
+}
+
+async function loadSettings() {
+  const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+  const settings = response.settings;
+  autoCloseToggle.checked = settings.autoCloseEnabled;
+  autoCloseHours.value = settings.autoCloseHours;
+}
+
+async function saveCurrentSettings() {
+  await chrome.runtime.sendMessage({
+    type: 'SAVE_SETTINGS',
+    settings: {
+      autoCloseEnabled: autoCloseToggle.checked,
+      autoCloseHours: parseInt(autoCloseHours.value, 10) || 24
+    }
+  });
 }

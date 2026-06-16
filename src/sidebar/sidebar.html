@@ -27,6 +27,23 @@
       <h2>Open Tabs</h2>
       <ul id="open-list" class="tab-list"></ul>
     </section>
+
+    <section class="settings-section">
+      <div class="section-header">
+        <h2>Settings</h2>
+        <button id="toggle-settings-btn" class="btn-icon" title="Toggle settings">⚙️</button>
+      </div>
+      <div id="settings-panel" class="settings-panel hidden">
+        <label class="setting-row">
+          <span>Auto-close stale tabs</span>
+          <input type="checkbox" id="auto-close-toggle" />
+        </label>
+        <label class="setting-row">
+          <span>Close after (hours)</span>
+          <input type="number" id="auto-close-hours" min="1" max="168" value="24" class="setting-input" />
+        </label>
+      </div>
+    </section>
   </div>
 
   <div id="modal-overlay" class="modal-overlay hidden">
