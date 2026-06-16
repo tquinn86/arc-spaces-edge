@@ -23,15 +23,21 @@ const settingsPanel = document.getElementById('settings-panel');
 const autoCloseToggle = document.getElementById('auto-close-toggle');
 const autoCloseHours = document.getElementById('auto-close-hours');
 
-// Initialize
+// Initialize — module scripts are deferred, so DOM may already be ready
 const openSidebarBtn = document.getElementById('open-sidebar');
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function init() {
   await refreshUI();
   setupEventListeners();
   renderColorPicker();
   await loadSettings();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 
 // Listen for space switch notifications
 chrome.runtime.onMessage.addListener((message) => {
