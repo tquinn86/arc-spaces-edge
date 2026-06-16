@@ -192,11 +192,12 @@ async function switchToSpace(targetSpaceId) {
 
   if (!targetSpace) throw new Error(`Space ${targetSpaceId} not found`);
 
-  // Save current open tabs
+  // Save current open tabs (exclude tabs that match pinned URLs)
   const currentTabs = await chrome.tabs.query({ currentWindow: true });
   if (currentSpace) {
+    const pinnedUrls = new Set(currentSpace.pinnedTabs.map(t => t.url));
     currentSpace.openTabs = currentTabs
-      .filter(t => !t.pinned) // don't save browser-pinned tabs
+      .filter(t => !t.pinned && !pinnedUrls.has(t.url))
       .map(t => ({ url: t.url, title: t.title }));
     await saveSpaces(spaces);
   }
@@ -204,10 +205,14 @@ async function switchToSpace(targetSpaceId) {
   // Close all non-pinned tabs in current window
   const tabsToClose = currentTabs.filter(t => !t.pinned).map(t => t.id);
 
-  // Open target space's pinned tabs
-  const pinnedUrls = targetSpace.pinnedTabs.map(t => t.url);
+  // Open target space's pinned tabs + previously open tabs
+  const targetPinnedUrls = targetSpace.pinnedTabs.map(t => t.url);
   const openUrls = targetSpace.openTabs.map(t => t.url);
-  const allUrls = [...pinnedUrls, ...openUrls];
+  const allUrls = [...targetPinnedUrls, ...openUrls];
+
+  // Clear restored open tabs (they're ephemeral, not permanent like pinned)
+  targetSpace.openTabs = [];
+  await saveSpaces(spaces);
 
   // Ensure at least one tab exists before closing others
   if (allUrls.length > 0) {
