@@ -4,7 +4,10 @@ import {
   getActiveSpaceId,
   setActiveSpaceId,
   getActiveSpace,
+  createSpace,
+  deleteSpace,
   pinTab,
+  unpinTab,
   revertTab,
   getTabTimestamps,
   saveTabTimestamps,
@@ -132,12 +135,10 @@ async function handleMessage(message) {
       return { success: true };
 
     case 'CREATE_SPACE':
-      const { createSpace } = await import('../utils/storage.js');
       const newSpace = await createSpace(message.name, message.color);
       return { space: newSpace };
 
     case 'DELETE_SPACE':
-      const { deleteSpace } = await import('../utils/storage.js');
       await deleteSpace(message.spaceId);
       return { success: true };
 
@@ -146,7 +147,6 @@ async function handleMessage(message) {
       return { pinnedTab };
 
     case 'UNPIN_TAB':
-      const { unpinTab } = await import('../utils/storage.js');
       await unpinTab(message.spaceId, message.pinId);
       return { success: true };
 
