@@ -9,6 +9,7 @@ import {
   pinTab,
   unpinTab,
   revertTab,
+  normalizeUrl,
   getTabTimestamps,
   saveTabTimestamps,
   trackTab,
@@ -19,9 +20,12 @@ import {
 
 // Initialize extension on install
 chrome.runtime.onInstalled.addListener(async () => {
-  // Ensure default space exists
-  await getSpaces();
-  await setActiveSpaceId('default');
+  // Ensure default space exists (don't clobber existing data)
+  const spaces = await getSpaces();
+  const activeId = await getActiveSpaceId();
+  if (!activeId) {
+    await setActiveSpaceId('default');
+  }
 
   // Set up side panel
   chrome.sidePanel.setOptions({
@@ -38,9 +42,23 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 });
 
-// Also set up alarm on startup (service worker can restart)
+// On browser startup: restore pinned tabs for the active space
 chrome.runtime.onStartup.addListener(async () => {
   chrome.alarms.create('auto-close-stale-tabs', { periodInMinutes: 15 });
+
+  const activeSpace = await getActiveSpace();
+  if (!activeSpace || activeSpace.pinnedTabs.length === 0) return;
+
+  // Check what's already open (Edge may restore previous session)
+  const existingTabs = await chrome.tabs.query({ currentWindow: true });
+  const existingUrls = new Set(existingTabs.map(t => normalizeUrl(t.url)));
+
+  // Open any pinned tabs that aren't already open
+  for (const pin of activeSpace.pinnedTabs) {
+    if (!existingUrls.has(normalizeUrl(pin.url))) {
+      await chrome.tabs.create({ url: pin.url, active: false });
+    }
+  }
 });
 
 // Auto-close stale tabs
@@ -195,9 +213,9 @@ async function switchToSpace(targetSpaceId) {
   // Save current open tabs (exclude tabs that match pinned URLs)
   const currentTabs = await chrome.tabs.query({ currentWindow: true });
   if (currentSpace) {
-    const pinnedUrls = new Set(currentSpace.pinnedTabs.map(t => t.url));
+    const pinnedNormalized = new Set(currentSpace.pinnedTabs.map(t => normalizeUrl(t.url)));
     currentSpace.openTabs = currentTabs
-      .filter(t => !t.pinned && !pinnedUrls.has(t.url))
+      .filter(t => !t.pinned && !pinnedNormalized.has(normalizeUrl(t.url)))
       .map(t => ({ url: t.url, title: t.title }));
     await saveSpaces(spaces);
   }
@@ -205,10 +223,12 @@ async function switchToSpace(targetSpaceId) {
   // Close all non-pinned tabs in current window
   const tabsToClose = currentTabs.filter(t => !t.pinned).map(t => t.id);
 
-  // Open target space's pinned tabs + previously open tabs
+  // Open target space's pinned tabs + previously open tabs (deduplicated)
   const targetPinnedUrls = targetSpace.pinnedTabs.map(t => t.url);
   const openUrls = targetSpace.openTabs.map(t => t.url);
-  const allUrls = [...targetPinnedUrls, ...openUrls];
+  const pinnedNormSet = new Set(targetPinnedUrls.map(u => normalizeUrl(u)));
+  const dedupedOpenUrls = openUrls.filter(u => !pinnedNormSet.has(normalizeUrl(u)));
+  const allUrls = [...targetPinnedUrls, ...dedupedOpenUrls];
 
   // Clear restored open tabs (they're ephemeral, not permanent like pinned)
   targetSpace.openTabs = [];

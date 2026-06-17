@@ -28,7 +28,7 @@ const DEFAULT_SPACE = {
 
 export async function getSpaces() {
   const data = await chrome.storage.local.get('spaces');
-  return data.spaces || [{ ...DEFAULT_SPACE }];
+  return data.spaces || [{ ...DEFAULT_SPACE, pinnedTabs: [], openTabs: [] }];
 }
 
 export async function saveSpaces(spaces) {
@@ -53,7 +53,7 @@ export async function getActiveSpace() {
 export async function createSpace(name, color) {
   const spaces = await getSpaces();
   const newSpace = {
-    id: `space-${Date.now()}`,
+    id: uniqueId('space'),
     name,
     color: color || getNextColor(spaces.length),
     pinnedTabs: [],
@@ -87,13 +87,23 @@ export async function updateSpace(spaceId, updates) {
   return spaces[index];
 }
 
+let _idCounter = 0;
+function uniqueId(prefix) {
+  return `${prefix}-${Date.now()}-${_idCounter++}`;
+}
+
+/** Reset internal counter (for tests only) */
+export function _resetForTest() {
+  _idCounter = 0;
+}
+
 export async function pinTab(spaceId, url, title) {
   const spaces = await getSpaces();
   const space = spaces.find(s => s.id === spaceId);
   if (!space) throw new Error(`Space ${spaceId} not found`);
 
   const pinnedTab = {
-    id: `pin-${Date.now()}`,
+    id: uniqueId('pin'),
     url,
     originalUrl: url,
     title
@@ -176,4 +186,17 @@ const SPACE_COLORS = [
 
 function getNextColor(index) {
   return SPACE_COLORS[index % SPACE_COLORS.length];
+}
+
+/**
+ * Normalize a URL for comparison purposes.
+ * Strips trailing slashes, fragments, and normalizes the origin.
+ */
+export function normalizeUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.origin + u.pathname.replace(/\/$/, '') + u.search;
+  } catch {
+    return url;
+  }
 }
