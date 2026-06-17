@@ -3,6 +3,16 @@ const COLORS = [
   '#9B59B6', '#1ABC9C', '#E67E22', '#3498DB'
 ];
 
+/** Strip trailing slash and fragment for URL comparison. */
+function normalizeUrl(url) {
+  try {
+    const u = new URL(url);
+    return (u.origin + u.pathname).replace(/\/+$/, '') + u.search;
+  } catch {
+    return url;
+  }
+}
+
 let selectedColor = COLORS[0];
 let currentSpaces = [];
 let activeSpaceId = null;
@@ -39,10 +49,12 @@ if (document.readyState === 'loading') {
   init();
 }
 
-// Listen for space switch notifications
+// Listen for updates from the service worker
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'SPACE_SWITCHED') {
     refreshUI();
+  } else if (message.type === 'TABS_CHANGED') {
+    renderOpenTabs();
   }
 });
 
@@ -101,8 +113,15 @@ function renderPinnedTabs() {
     const title = document.createElement('span');
     title.className = 'tab-title';
     title.textContent = tab.title || new URL(tab.url).hostname;
-    title.addEventListener('click', () => {
-      chrome.tabs.create({ url: tab.url });
+    title.addEventListener('click', async () => {
+      // Focus existing tab if open, otherwise open a new one
+      const openTabs = await chrome.tabs.query({ currentWindow: true });
+      const match = openTabs.find(t => normalizeUrl(t.url) === normalizeUrl(tab.url));
+      if (match) {
+        chrome.tabs.update(match.id, { active: true });
+      } else {
+        chrome.tabs.create({ url: tab.url });
+      }
     });
 
     const actions = document.createElement('div');
@@ -140,28 +159,49 @@ function renderPinnedTabs() {
 
 async function renderOpenTabs() {
   const tabs = await chrome.tabs.query({ currentWindow: true });
+  // Get pinned URLs so we can skip them in open tab list
+  const space = currentSpaces.find(s => s.id === activeSpaceId);
+  const pinnedUrls = new Set((space?.pinnedTabs || []).map(p => normalizeUrl(p.url)));
+
   openList.innerHTML = '';
 
-  tabs.filter(t => !t.pinned).forEach(tab => {
-    const li = document.createElement('li');
-    li.className = 'tab-item';
+  tabs
+    .filter(t => !t.pinned && !pinnedUrls.has(normalizeUrl(t.url || '')))
+    .forEach(tab => {
+      const li = document.createElement('li');
+      li.className = 'tab-item';
+      if (tab.active) li.classList.add('active');
 
-    const favicon = document.createElement('img');
-    favicon.className = 'favicon';
-    favicon.src = tab.favIconUrl || getFaviconUrl(tab.url);
-    favicon.onerror = () => { favicon.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect fill="%23666" width="16" height="16" rx="3"/></svg>'; };
+      const favicon = document.createElement('img');
+      favicon.className = 'favicon';
+      favicon.src = tab.favIconUrl || getFaviconUrl(tab.url);
+      favicon.onerror = () => { favicon.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect fill="%23666" width="16" height="16" rx="3"/></svg>'; };
 
-    const title = document.createElement('span');
-    title.className = 'tab-title';
-    title.textContent = tab.title || 'New Tab';
-    title.addEventListener('click', () => {
-      chrome.tabs.update(tab.id, { active: true });
+      const title = document.createElement('span');
+      title.className = 'tab-title';
+      title.textContent = tab.title || 'New Tab';
+      title.addEventListener('click', () => {
+        chrome.tabs.update(tab.id, { active: true });
+      });
+
+      const actions = document.createElement('div');
+      actions.className = 'tab-actions';
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'tab-action-btn';
+      closeBtn.textContent = '✕';
+      closeBtn.title = 'Close tab';
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        chrome.tabs.remove(tab.id);
+      });
+      actions.appendChild(closeBtn);
+
+      li.appendChild(favicon);
+      li.appendChild(title);
+      li.appendChild(actions);
+      openList.appendChild(li);
     });
-
-    li.appendChild(favicon);
-    li.appendChild(title);
-    openList.appendChild(li);
-  });
 }
 
 function setupEventListeners() {

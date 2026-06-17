@@ -143,6 +143,12 @@ h2 {
   background: #2a2a4a;
 }
 
+.tab-item.active {
+  background: #2a2a4a;
+  border-left: 2px solid #4A90D9;
+  padding-left: 8px;
+}
+
 .tab-item .favicon {
   width: 16px;
   height: 16px;

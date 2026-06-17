@@ -110,11 +110,13 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 // Track new tabs
 chrome.tabs.onCreated.addListener(async (tab) => {
   await trackTab(tab.id);
+  notifySidebar('TABS_CHANGED');
 });
 
 // Clean up closed tabs
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   await untrackTab(tabId);
+  notifySidebar('TABS_CHANGED');
 });
 
 // Handle keyboard shortcuts
@@ -277,17 +279,12 @@ async function updatePinnedTabCurrentUrl(spaceId, pinId, url) {
 
 // Track tab URL changes for pinned tabs
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.url) {
-    const activeSpace = await getActiveSpace();
-    if (!activeSpace) return;
-
-    // Check if this tab matches any pinned tab
-    for (const pinnedTab of activeSpace.pinnedTabs) {
-      // Match by comparing with the known URL
-      if (tab.url && pinnedTab.url !== tab.url) {
-        // Tab navigated away - we could track this
-        // For now, we just let the user revert manually
-      }
-    }
+  if (changeInfo.status === 'complete' || changeInfo.title) {
+    notifySidebar('TABS_CHANGED');
   }
 });
+
+/** Send a message to the sidebar (best-effort, no error if sidebar is closed). */
+function notifySidebar(type, data = {}) {
+  chrome.runtime.sendMessage({ type, ...data }).catch(() => {});
+}
